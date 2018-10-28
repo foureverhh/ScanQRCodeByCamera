@@ -14,6 +14,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 import android.Manifest;
+import android.widget.Toast;
 
 import com.google.android.gms.vision.CameraSource;
 import com.google.android.gms.vision.Detector;
@@ -31,25 +32,6 @@ public class MainActivity extends AppCompatActivity {
     Button scanButton;
     final int RequestCameraPermissionID = 1001;
 
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        switch (requestCode) {
-            case RequestCameraPermissionID: {
-                if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    if (ActivityCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-                        return;
-                    }
-                    try {
-                        cameraSource.start(cameraPreview.getHolder());
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-            }
-            break;
-        }
-    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -59,21 +41,48 @@ public class MainActivity extends AppCompatActivity {
         cameraPreview = findViewById(R.id.cameraPreview);
         textResult = findViewById(R.id.resultText);
         scanButton = findViewById(R.id.scanBtn);
+
         barcodeDetector = new BarcodeDetector.Builder(getApplicationContext())
                 .setBarcodeFormats(Barcode.QR_CODE)
                 .build();
 
-        cameraSource = new CameraSource.Builder(this, barcodeDetector)
+        cameraSource = new CameraSource.Builder(getApplicationContext(), barcodeDetector)
                 .setRequestedPreviewSize(640, 480)
                 .build();
 
         scanButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                //Add Event
 
+
+
+                //GET input of qr-code
+                barcodeDetector.setProcessor(new Detector.Processor<Barcode>() {
+                    @Override
+                    public void release() {
+
+                    }
+
+                    @Override
+                    public void receiveDetections(Detector.Detections<Barcode> detections) {
+                        final SparseArray<Barcode> qrCodes = detections.getDetectedItems();
+                        if(qrCodes.size() !=0){
+                            textResult.post(new Runnable() {
+                                @Override
+                                public void run() {
+                                    //Create vibrate
+                                    Vibrator vibrator = (Vibrator) getApplicationContext()
+                                            .getSystemService(Context.VIBRATOR_SERVICE);
+                                    vibrator.vibrate(1000);
+                                    textResult.setText(qrCodes.valueAt(0).displayValue);
+                                }
+                            });
+                        }
+                    }
+                });
             }
         });
+        //Add Event
         cameraPreview.getHolder().addCallback(new SurfaceHolder.Callback() {
             @Override
             public void surfaceCreated(SurfaceHolder holder) {
@@ -100,30 +109,6 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void surfaceDestroyed(SurfaceHolder holder) {
                 cameraSource.stop();
-            }
-        });
-        //GET input of qr-code
-        barcodeDetector.setProcessor(new Detector.Processor<Barcode>() {
-            @Override
-            public void release() {
-
-            }
-
-            @Override
-            public void receiveDetections(Detector.Detections<Barcode> detections) {
-                final SparseArray<Barcode> qrCodes = detections.getDetectedItems();
-                if(qrCodes.size() !=0){
-                    textResult.post(new Runnable() {
-                        @Override
-                        public void run() {
-                            //Create vibrate
-                            Vibrator vibrator = (Vibrator) getApplicationContext()
-                                    .getSystemService(Context.VIBRATOR_SERVICE);
-                            vibrator.vibrate(1000);
-                            textResult.setText(qrCodes.valueAt(0).displayValue);
-                        }
-                    });
-                }
             }
         });
     }

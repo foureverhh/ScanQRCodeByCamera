@@ -34,6 +34,26 @@ public class MainActivity extends AppCompatActivity {
 
 
     @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        switch (requestCode) {
+            case RequestCameraPermissionID: {
+                if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    if (ActivityCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+                        return;
+                    }
+                    try {
+                        cameraSource.start(cameraPreview.getHolder());
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+            break;
+        }
+    }
+
+    @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
@@ -54,32 +74,6 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
 
-
-
-                //GET input of qr-code
-                barcodeDetector.setProcessor(new Detector.Processor<Barcode>() {
-                    @Override
-                    public void release() {
-
-                    }
-
-                    @Override
-                    public void receiveDetections(Detector.Detections<Barcode> detections) {
-                        final SparseArray<Barcode> qrCodes = detections.getDetectedItems();
-                        if(qrCodes.size() !=0){
-                            textResult.post(new Runnable() {
-                                @Override
-                                public void run() {
-                                    //Create vibrate
-                                    Vibrator vibrator = (Vibrator) getApplicationContext()
-                                            .getSystemService(Context.VIBRATOR_SERVICE);
-                                    vibrator.vibrate(1000);
-                                    textResult.setText(qrCodes.valueAt(0).displayValue);
-                                }
-                            });
-                        }
-                    }
-                });
             }
         });
         //Add Event
@@ -109,6 +103,31 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void surfaceDestroyed(SurfaceHolder holder) {
                 cameraSource.stop();
+            }
+        });
+
+        //GET input of qr-code
+        barcodeDetector.setProcessor(new Detector.Processor<Barcode>() {
+            @Override
+            public void release() {
+
+            }
+
+            @Override
+            public void receiveDetections(Detector.Detections<Barcode> detections) {
+                final SparseArray<Barcode> qrCodes = detections.getDetectedItems();
+                if(qrCodes.size() !=0){
+                    textResult.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            //Create vibrate
+                            Vibrator vibrator = (Vibrator) getApplicationContext()
+                                    .getSystemService(Context.VIBRATOR_SERVICE);
+                            vibrator.vibrate(1000);
+                            textResult.setText(qrCodes.valueAt(0).displayValue);
+                        }
+                    });
+                }
             }
         });
     }
